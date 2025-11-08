@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>n0b0dy Web Interface</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    :root {
+      --bg: #121212;
+      --fg: #f1f1f1;
+      --muted: #8a8a8a;
+      --accent: #5ac8fa;
+      --panel: #1c1c1c;
+    }
+    body {
+      margin: 0;
+      font-family: monospace;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    header {
+      text-align: center;
+      padding: 2rem 0 1rem;
+    }
+    header h1 {
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .panel {
+      background: var(--panel);
+      padding: 1rem 1.25rem;
+      border-radius: 10px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+    }
+    .panel h2 {
+      margin-top: 0;
+      color: var(--accent);
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    input[type=text], input[type=password], input[type=number], textarea {
+      width: 100%;
+      padding: 0.4rem;
+      font-family: monospace;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #222;
+      color: var(--fg);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    pre {
+      background: #0e0e0e;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 0.8rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      color: var(--fg);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+    .col {
+      flex: 1;
+      min-width: 240px;
+    }
+    .muted {
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>n0b0dy Web Interface</h1>
+    <p class="muted">Unleashed (Web Edition)</p>
+  </header>
+
+  <main>
+
+    <!-- GitHub credentials -->
+    <section class="panel">
+      <h2>GitHub Configuration</h2>
+      <div class="row">
+        <div class="col">
+          <label for="gh-username">Username</label>
+          <input type="text" id="gh-username" placeholder="GitHub username">
+        </div>
+        <div class="col">
+          <label for="gh-token">Access Token</label>
+          <input type="password" id="gh-token" placeholder="GitHub PAT">
+        </div>
+        <div class="col" style="align-self:flex-end;">
+          <button id="save-creds">Save</button>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:6px;">
+        Current: <span id="token-mask">(not set)</span>
+      </p>
+      <p class="muted">
+        Repo: <span id="repo"></span> / <span id="path"></span> @ <span id="branch"></span>
+      </p>
+    </section>
+
+    <!-- GitHub Rate Limit -->
+    <section class="panel">
+      <h2>GitHub API Usage</h2>
+      <div class="row">
+        <div class="col">
+          <button id="check-rate">Check Rate Limit</button>
+          <span id="rate-status" class="muted"></span>
+        </div>
+      </div>
+      <p class="muted" id="rate-info">(not checked)</p>
+    </section>
+
+
+    <!-- Repository Management -->
+    <section class="panel">
+      <h2>Repository</h2>
+      <div class="row">
+        <div class="col">
+          <label for="repo-input">Repository name</label>
+          <input id="repo-input" type="text" placeholder="e.g., testrepo">
+        </div>
+        <div class="col" style="align-self:flex-end;">
+          <button id="repo-save">Save</button>
+          <span id="repo-status" class="muted"></span>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:6px;">Set or change the active repository name for this session.</p>
+    </section>
+
+    <!-- Polling interval -->
+    <section class="panel">
+      <h2>Polling</h2>
+      <label for="interval-ms">GitHub polling interval (milliseconds)</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="interval-ms" type="number" min="100" step="100" value="5000" />
+        <button id="save-interval">Save interval</button>
+        <span id="interval-status" class="muted"></span>
+      </div>
+    </section>
+
+    <!-- README viewer/editor -->
+    <section class="panel">
+      <h2>README.md Content</h2>
+      <div class="row">
+        <div class="col">
+          <label>Current content</label>
+          <pre id="readme-view">(loading...)</pre>
+        </div>
+        <div class="col">
+          <label for="readme-input">Edit content</label>
+          <textarea id="readme-input" placeholder="Write new README content here..."></textarea>
+          <div style="margin-top:6px;">
+            <button id="update-readme">Update</button>
+            <span id="update-status" class="muted"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Craft Linux -->
+    <section class="panel" id="craft">
+      <h2>Craft (Linux)</h2>
+      <p class="muted">Generates a pasteable one-liner that runs a persistent background job (<code>nohup ... &amp; disown</code>).</p>
+      <div class="row">
+        <div class="col">
+          <button id="craft-linux">Generate command</button>
+          <button id="copy-craft" disabled>Copy</button>
+          <pre id="craft-output"></pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
